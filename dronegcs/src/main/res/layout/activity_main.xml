@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <fragment
+        android:id="@+id/map"
+        android:name="com.naver.maps.map.MapFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="21dp"
+        android:layout_weight="1"
+        android:background="#44000000"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.499"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/map"
+        app:layout_constraintVertical_bias="0.0">
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginLeft="5dp"
+            android:text="전압:"
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/volt"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="비행모드:"
+            android:textColor="#FFFFFFFF" />
+
+        <Spinner
+            android:id="@+id/flymode"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentLeft="true"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:spinnerMode="dropdown"
+            android:text=""
+            android:textColor="#FFFFFFFF" />/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+
+            android:text="고도:"
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/altitude"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="속도:"
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/speed"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="YAW:"
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/YAW1"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="위성수:"
+            android:textColor="#FFFFFFFF" />
+
+        <TextView
+            android:id="@+id/satenum"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginRight="0dp"
+            android:layout_weight="1"
+            android:text="0"
+            android:textColor="#FFFFFFFF" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/connect"
+        android:layout_width="75dp"
+        android:layout_height="41dp"
+        android:onClick="btn_event"
+        android:text="conn"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/map"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <LinearLayout
+        android:id="@+id/connectmenu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/connect"
+        app:layout_constraintEnd_toEndOf="@+id/connect"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1">
+
+        <Button
+            android:id="@+id/land"
+            android:layout_width="match_parent"
+            android:layout_height="41dp"
+            android:onClick="btn_event"
+            android:text="land"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/map"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0" />
+
+        <Button
+            android:id="@+id/arm"
+            android:layout_width="75dp"
+            android:layout_height="41dp"
+            android:onClick="btn_event"
+            android:text="arm"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/map"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0" />
+
+    </LinearLayout>
+
+
+    <Button
+        android:id="@+id/takeoffset"
+        android:layout_width="60dp"
+        android:layout_height="41dp"
+        android:onClick="btn_event"
+        android:text="이륙고도"
+        android:textSize="4pt"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/map"
+        app:layout_constraintHorizontal_bias="0.976"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.086" />
+
+    <LinearLayout
+        android:id="@+id/takeoffsetlist"
+        android:layout_width="60dp"
+        android:layout_height="85dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@+id/map"
+        app:layout_constraintEnd_toEndOf="@id/takeoffset"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/takeoffset"
+        app:layout_constraintVertical_bias="0.015">
+
+        <Button
+            android:id="@+id/drone_asec"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:onClick="btn_event"
+            android:text="+0.5"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/map"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0" />
+
+        <Button
+            android:id="@+id/drone_desc"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:onClick="btn_event"
+            android:text="-0.5"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/map"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayout3"
+        android:layout_width="240dp"
+        android:layout_height="61dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/toggle"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.954">
+
+        <Button
+            android:id="@+id/maplockbtn"
+            android:layout_width="80dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:onClick="btn_event"
+            android:text="맵 잠금" />
+
+        <Button
+            android:id="@+id/mapoptionbtn"
+            android:layout_width="80dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:onClick="btn_event"
+            android:text="지도옵션" />
+
+        <Button
+            android:id="@+id/mapcadastral"
+            android:layout_width="80dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:onClick="btn_event"
+            android:text="지적도"
+            android:textSize="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/maplocklayer"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout3"
+        app:layout_constraintStart_toStartOf="@+id/linearLayout3">
+
+        <Button
+            android:id="@+id/maplock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="맵 잠금" />
+
+        <Button
+            android:id="@+id/mapmove"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="맵 이동" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/mapoptionlayer"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout3"
+        app:layout_constraintStart_toEndOf="@+id/maplocklayer">
+
+        <Button
+            android:id="@+id/basicmap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="기본지도" />
+
+        <Button
+            android:id="@+id/satellitemap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="위성지도" />
+
+        <Button
+            android:id="@+id/hybridmap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="hybrid" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/mapcadstrallayer"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout3"
+        app:layout_constraintEnd_toEndOf="@+id/linearLayout3"
+        app:layout_constraintStart_toEndOf="@+id/mapoptionlayer">
+
+        <Button
+            android:id="@+id/cadaston"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="지적도On"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/cadastoff"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btn_event"
+            android:text="지적도off"
+            android:textSize="10dp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/toggle"
+        android:layout_width="51dp"
+        android:layout_height="38dp"
+        android:onClick="btn_event"
+        android:text="opt"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.976"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.914" />
+
+    <android.support.v7.widget.RecyclerView
+        android:layout_width="225dp"
+        android:layout_height="98dp"
+        android:id="@+id/recycler_view"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.031"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.102" />
+
+    <Button
+        android:id="@+id/mission"
+        android:layout_width="60dp"
+        android:layout_height="41dp"
+        android:text="임무"
+        android:textSize="4pt"
+        android:onClick="btn_event"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/takeoffset"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.086" />
+
+    <LinearLayout
+        android:id="@+id/missiondrawer"
+        android:layout_width="60dp"
+        android:layout_height="128dp"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toStartOf="@+id/takeoffsetlist"
+        app:layout_constraintStart_toStartOf="@+id/mission"
+        app:layout_constraintTop_toBottomOf="@+id/mission">
+
+        <Button
+            android:id="@+id/nomission"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:text="none"
+            android:onClick="btn_event"
+            android:textSize="4pt" />
+
+        <Button
+            android:id="@+id/PolygonMission"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:text="다각형"
+            android:onClick="btn_event"
+            android:textSize="4pt" />
+        <Button
+            android:id="@+id/ABMission"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:text="AB"
+            android:onClick="btn_event"
+            android:textSize="4pt" />
+    </LinearLayout>
+
+
+</android.support.constraint.ConstraintLayout>
