@@ -6,8 +6,10 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 
 import android.graphics.PointF;
+import android.graphics.SurfaceTexture;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.MediaCodec;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -21,6 +23,8 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
+import android.view.Surface;
+import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -37,6 +41,7 @@ import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationSource;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapView;
+import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.InfoWindow;
 import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
@@ -44,11 +49,13 @@ import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.overlay.PathOverlay;
 import com.naver.maps.map.overlay.PolygonOverlay;
 import com.o3dr.android.client.apis.ControlApi;
+import com.o3dr.android.client.apis.MissionApi;
 import com.o3dr.android.client.apis.VehicleApi;
 import com.o3dr.android.client.apis.solo.SoloCameraApi;
 import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.android.client.interfaces.LinkListener;
 import com.o3dr.android.client.interfaces.TowerListener;
+import com.o3dr.android.client.utils.video.MediaCodecManager;
 import com.o3dr.services.android.lib.coordinate.LatLong;
 import com.o3dr.services.android.lib.coordinate.LatLongAlt;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
@@ -57,7 +64,10 @@ import com.o3dr.services.android.lib.drone.companion.solo.SoloAttributes;
 import com.o3dr.services.android.lib.drone.companion.solo.SoloState;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.connection.ConnectionType;
+import com.o3dr.services.android.lib.drone.mission.Mission;
+import com.o3dr.services.android.lib.drone.mission.item.MissionItem;
 import com.o3dr.services.android.lib.drone.mission.item.command.YawCondition;
+import com.o3dr.services.android.lib.drone.mission.item.spatial.Waypoint;
 import com.o3dr.services.android.lib.drone.property.Altitude;
 import com.o3dr.services.android.lib.drone.property.Attitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
@@ -127,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private SimpleTextAdapter adapter;
 
     //polygon
-    private boolean[] mission = {false , false};
+    private boolean mission = false;
     public ArrayList<LatLong> polygonPointList = new ArrayList<LatLong>();
     public ArrayList<LatLong> sprayPointList = new ArrayList<>();
     private MainActivity mainActivity;
@@ -138,6 +148,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int maxSprayDistance = 50;
     private int capacity = 0;
     private double sprayAngle;
+    private int missioncount=0;
+    // video manage
+    Handler mainHandler;
+    private TextureView videoView;
+    private MediaCodecManager mediaCodecManager;
+    private String videotag = "testvideotag";
+
+
 
 
     @Nullable
@@ -213,11 +231,55 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         adapter = new SimpleTextAdapter(alertlist);
         recyclerView.setAdapter(adapter);
 
+        // video layout #####################################
+       /* videoView = (TextureView) findViewById(R.id.textureView);
+        videoView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                alertUser("Video display is available.");
+
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+            }
+        });
+        startVideoStream(new Surface(videoView.getSurfaceTexture()));
+        */
         mapFragment.getMapAsync(this);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
     }
 
+    /*private void startVideoStream(Surface videoSurface) {
+        SoloCameraApi.getApi(drone).startVideoStream(videoSurface, videotag, true, new AbstractCommandListener() {
+            @Override
+            public void onSuccess() {
+                alertUser("Successfully started the video stream. ");
 
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("Error while starting the video stream: " + executionError);
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("Timed out while attempting to start the video stream.");
+            }
+        });
+    }*/
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,  @NonNull int[] grantResults) {
@@ -235,174 +297,167 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(@NonNull NaverMap naverMap) {
         this.mymap = naverMap;
         manageOverlays = new ManageOverlay(this.mymap,this);
+        // 네이버 로고 위치 변경
+        UiSettings uiSettings = naverMap.getUiSettings();
+        uiSettings.setLogoMargin(2080, 0, 0, 925);
+
+        // 나침반 제거
+        uiSettings.setCompassEnabled(false);
+
+        // 축척 바 제거
+        uiSettings.setScaleBarEnabled(false);
+
+        // 줌 버튼 제거
+        uiSettings.setZoomControlEnabled(false);
+
         mymap.setOnMapLongClickListener((pointF, latLng) -> {
             droneguide(latLng);
         });
         
         mymap.setOnMapClickListener((pointF, latLng) -> {
             LatLong latlong = new LatLong(latLng.latitude,latLng.longitude);
-            polygonMission(latlong);
-            abMission(latlong);
+            customMission(latlong);
+        });
+        //임무 전송 버튼
+        Button btnMission = (Button)findViewById(R.id.sendmission);
+        btnMission.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View view){
+                if(polygonPointList.size()>0) {
+                    setMission();
+                }else
+                    alertUser("need Marker");
+            }
+        });
+        //임무 시작 버튼
+        Button btnStartmission = (Button)findViewById(R.id.startmission);
+        btnStartmission.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View view){
+                if(btnStartmission.getText().equals("임무시작")){
+                    startMission();
+                    btnStartmission.setText("임무중지");
+                }
+                else if(btnStartmission.getText().equals("임무중지")){
+                    abortmission();
+                    btnStartmission.setText("임무시작");
+                }
+            }
+        });
+    }
+
+    //mission
+    public void setMission(){
+        Mission mMission = new Mission();
+        ArrayList<LatLng> list = manageOverlays.getPlist();
+        for(int i=0;i<list.size();i++){
+            Waypoint waypoint = new Waypoint();
+            waypoint.setDelay(1);
+
+            LatLongAlt latLongAlt = new LatLongAlt(list.get(i).latitude,list.get(i).longitude,dronealtitude);
+            waypoint.setCoordinate(latLongAlt);
+
+            mMission.addMissionItem(waypoint);
+        }
+        MissionApi.getApi(this.drone).setMission(mMission,true);
+
+
+    }
+    //startmission
+    public void startMission(){
+
+        MissionApi.getApi(this.drone).startMission(true, true, new AbstractCommandListener() {
+            @Override
+            public void onSuccess() {
+                alertUser("Mission on board");
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("no mission on board");
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("timeout");
+            }
         });
 
     }
+    public void changetoAutomode(){
+
+        VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_AUTO,new SimpleCommandListener(){
+            @Override
+            public void onSuccess() {
+                alertUser("Auto 모드로 변경 중...");
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("Auto 모드 변경 실패 : " + executionError);
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("Auto 모드 변경 실패.");
+            }
+        });
+    }
+    //stop mission
+    public void abortmission(){
+        MissionApi.getApi(this.drone).pauseMission(null);
+        VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER,new SimpleCommandListener(){
+            @Override
+            public void onSuccess(){
+                alertUser("Loiter mode");
+
+            }
+            @Override
+            public void onError(int executionError) {
+                alertUser("Loiter 실패 : " + executionError);
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("Loiter 모드 변경 실패.");
+            }
+        });
+    }
+    //gettoplatform
+    public void getPlat(){
+        MissionApi.getApi(this.drone).pauseMission(null);
+        ControlApi.getApi(this.drone).climbTo(0);
+        alertUser("approaching to the platform...");
+        try{
+            Thread.sleep(5000);
+            //wait for onboard signal
+            ControlApi.getApi(this.drone).climbTo(dronealtitude);
+            alertUser("leaving...");
+        }catch(InterruptedException e){
+            alertUser("sleep denied");
+            ControlApi.getApi(this.drone).climbTo(dronealtitude);
+        }
+        finally{
+            MissionApi.getApi(this.drone).startMission(true,true,null);
+            alertUser("return to the mission..");
+        }
+
+    }
+
 //drawpolygon
 //manageoverlay
-    public void polygonMission(LatLong latLong){
-        if(mission[1]==true){
-            mission[0] = false;
-            addPolygonPoint(latLong);
-        }
-    }
-    public void abMission(LatLong latLong){
-        double angle1 = 1, angle2 = 1;
-        int direction = 1;
-        if(mission[0]==true)
+   public void customMission(LatLong latLong){
+        if(mission)
         {
             polygonPointList.add(latLong);
-
             manageOverlays.setPPosition(latLong);
-
-            mission[1] = false;
-            if (polygonPointList.size() == 2) {
-                angle1 = MathUtils.getHeadingFromCoordinates(polygonPointList.get(0), polygonPointList.get(1));
-                LatLong newPoint = MathUtils.newCoordFromBearingAndDistance(polygonPointList.get(1), angle1 - (90 * direction), 100);
-                //addPolygonPoint(newPoint);
-                addABPoint(newPoint);
-
-
-                //angle2 = MathUtils.getHeadingFromCoordinates(polygonPointList.get(1), polygonPointList.get(0));
-                newPoint = MathUtils.newCoordFromBearingAndDistance(polygonPointList.get(0), angle1 - 90, 100);
-                //addPolygonPoint(newPoint);
-                addABPoint(newPoint);
-            }
+            manageOverlays.drawCustomPath();
         }
-
-    }
+   }
     public void missionClear(){
-        mission[0] = false;
-        mission[1] = false;
-    }
-    public void addABPoint(LatLong latLong){
-        polygonPointList.add(latLong);
-
-        manageOverlays.setPPosition(latLong);
-        sprayAngle = MathUtils.getHeadingFromCoordinates(polygonPointList.get(0), polygonPointList.get(1));;
-        try{
-            makeGrid();
-        }catch(Exception e){
-            Log.d("myCheck","예외처리 : " + e.getMessage());
-        }
+        mission = false;
     }
 
-public void addPolygonPoint(LatLong latLong) {
-
-
-
-    polygonPointList.add(latLong);
-
-    manageOverlays.setPPosition(latLong);
-
-
-    if (polygonPointList.size() == 1) {
-
-    }
-
-
-
-    if (polygonPointList.size() > 2) {
-        manageOverlays.drawPolygon();
-        sprayAngle = makeSprayAngle();
-
-        try {
-            makeGrid();
-           // makeBound();
-        } catch(Exception e) {
-            Log.d("myCheck","예외처리 : " + e.getMessage());
-        }
-    }
-}
-    //폴리곤 라인 가장 긴 길이 찾아서 각도 반환
-    protected double makeSprayAngle() {
-        Polygon poly = makePoly();
-        double angle = 0;
-        double maxDistance = 0;
-        List<LineLatLong> lineLatLongList = poly.getLines();
-        for (LineLatLong lineLatLong : lineLatLongList) {
-            double lineDistance = MathUtils.getDistance2D(lineLatLong.getStart(), lineLatLong.getEnd());
-            if(maxDistance < lineDistance) {
-                maxDistance = lineDistance;
-                angle = lineLatLong.getHeading();
-            }
-        }
-        Log.d("mycheck",""+angle);
-        return angle;
-    }
-
-    private Polygon makePoly() {
-        Polygon poly = new Polygon();
-        List<LatLong> latLongList = new ArrayList<>();
-        for(LatLong latLong : polygonPointList) {
-            latLongList.add(latLong);
-        }
-        poly.addPoints(latLongList);
-        return poly;
-    }
-
-    public void makeGrid() throws Exception {
-        if(this == null) throw new Exception("PolygonSpray retreiving MapActivity returns null");
-
-        List<LatLong> polygonPoints = new ArrayList<>();
-        for(LatLong latLong : polygonPointList) {
-            polygonPoints.add(latLong);
-        }
-
-        List<LineLatLong> circumscribedGrid = new CircumscribedGrid(polygonPoints, this.sprayAngle, sprayDistance).getGrid();
-        List<LineLatLong> trimedGrid = new Trimmer(circumscribedGrid, makePoly().getLines()).getTrimmedGrid();
-
-        for (int i = 0; i < trimedGrid.size(); i++) {
-            LineLatLong line = trimedGrid.get(i);
-            if(line.getStart().getLatitude() > line.getEnd().getLatitude()) {
-                LineLatLong line1 = new LineLatLong(line.getEnd(),line.getStart());
-                trimedGrid.set(i, line1);
-            }
-        }
-
-
-        LatLong dronePosition = new LatLong(37.5670135, 126.9783740);
-        double dist1 = MathUtils.pointToLineDistance(trimedGrid.get(0).getStart(), trimedGrid.get(0).getEnd(), dronePosition);
-        double dist2 = MathUtils.pointToLineDistance(trimedGrid.get(trimedGrid.size()-1).getStart(), trimedGrid.get(trimedGrid.size()-1).getEnd(), dronePosition);
-
-        if (dist2 < dist1) {
-            Collections.reverse(trimedGrid);
-            double distStart = MathUtils.getDistance2D(dronePosition, trimedGrid.get(trimedGrid.size()-1).getStart());
-            double distEnd = MathUtils.getDistance2D(dronePosition, trimedGrid.get(trimedGrid.size()-1).getEnd());
-            if (distStart > distEnd) {
-                for (int i = 0; i < trimedGrid.size(); i++) {
-                    LineLatLong line = trimedGrid.get(i);
-                    LineLatLong line1 = new LineLatLong(line.getEnd(),line.getStart());
-                    trimedGrid.set(i, line1);
-                }
-            }
-        }
-
-        for (int i = 0; i < trimedGrid.size(); i++) {
-            LineLatLong line = trimedGrid.get(i);
-            if (i % 2 != 0) {
-                line = new LineLatLong(line.getEnd(), line.getStart());
-                trimedGrid.set(i,line);
-            }
-        }
-
-        sprayPointList.clear();
-        for(LineLatLong lineLatLong : trimedGrid) {
-            sprayPointList.add(lineLatLong.getStart());
-            sprayPointList.add(lineLatLong.getEnd());
-        }
-
-        manageOverlays.drawSprayPoint(sprayPointList);
-
-    }
     public void resetMarker(){
         manageOverlays.reset();
     }
@@ -695,6 +750,20 @@ public void addPolygonPoint(LatLong latLong) {
             case AttributeEvent.GPS_COUNT:
                 updateNumberOfSatellites();
                 break;
+            case AttributeEvent.MISSION_SENT:
+                alertUser("mission upload succ");
+                break;
+            case AttributeEvent.MISSION_ITEM_REACHED:
+                //getPlat();
+                missioncount++;
+                if(missioncount==manageOverlays.getPlist().size())
+                {
+                    startMission();
+                    missioncount=0;
+                }
+                //getPlat();
+            case AttributeEvent.MISSION_UPDATED:
+                break;
 
             default:
                 // Log.i("DRONE_EVENT", event); //Uncomment to see events from the drone
@@ -838,6 +907,7 @@ public void addPolygonPoint(LatLong latLong) {
 
     //button event list
     public void btn_event(View v){
+        LinearLayout missiondrawlist = (LinearLayout)findViewById(R.id.missiondrawer);
         switch(v.getId()){
             case R.id.connect:
                 onBtnConnectTap();
@@ -901,8 +971,8 @@ public void addPolygonPoint(LatLong latLong) {
                 break;
             case R.id.mission:
                 missionlist = !missionlist;
-                LinearLayout missiondrawlist = (LinearLayout)findViewById(R.id.missiondrawer);
-                if(missionlist)
+
+                if(missiondrawlist.getVisibility()==View.INVISIBLE)
                     missiondrawlist.setVisibility(View.VISIBLE);
                 else
                     missiondrawlist.setVisibility(View.INVISIBLE);
@@ -911,14 +981,13 @@ public void addPolygonPoint(LatLong latLong) {
                 resetMarker();
                 polygonPointList.clear();
                 missionClear();
+                missiondrawlist.setVisibility(View.INVISIBLE);
                 break;
-            case R.id.PolygonMission:
-                mission[1] = true;
+            case R.id.custom:
+                mission = true;
+                missiondrawlist.setVisibility(View.INVISIBLE);
+                break;
 
-                break;
-            case R.id.ABMission:
-                mission[0] = true;
-                break;
         }
     }
     public void onToggleTap(){
@@ -1017,6 +1086,8 @@ public void addPolygonPoint(LatLong latLong) {
         TextView speedTextView = (TextView) findViewById(R.id.speed);
         Speed droneSpeed = this.drone.getAttribute(AttributeType.SPEED);
         speedTextView.setText(String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
+
+
     }
 
     protected void updateVolt(){

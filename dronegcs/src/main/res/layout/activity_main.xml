@@ -154,6 +154,23 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1">
 
+
+        <Button
+            android:id="@+id/startmission"
+            android:layout_width="match_parent"
+            android:layout_height="41dp"
+
+            android:textSize="4pt"
+            android:text="임무시작"
+            />
+        <Button
+            android:id="@+id/sendmission"
+            android:layout_width="match_parent"
+            android:layout_height="41dp"
+
+            android:textSize="4pt"
+            android:text="임무전송"
+            />
         <Button
             android:id="@+id/land"
             android:layout_width="match_parent"
@@ -394,7 +411,7 @@
     <LinearLayout
         android:id="@+id/missiondrawer"
         android:layout_width="60dp"
-        android:layout_height="128dp"
+        android:layout_height="85dp"
         android:layout_marginTop="4dp"
         android:orientation="vertical"
         app:layout_constraintEnd_toStartOf="@+id/takeoffsetlist"
@@ -410,20 +427,25 @@
             android:textSize="4pt" />
 
         <Button
-            android:id="@+id/PolygonMission"
+            android:id="@+id/custom"
             android:layout_width="60dp"
             android:layout_height="41dp"
-            android:text="다각형"
+            android:text="cust"
             android:onClick="btn_event"
             android:textSize="4pt" />
-        <Button
-            android:id="@+id/ABMission"
-            android:layout_width="60dp"
-            android:layout_height="41dp"
-            android:text="AB"
-            android:onClick="btn_event"
-            android:textSize="4pt" />
+
     </LinearLayout>
+
+    <!--<TextureView
+        android:id="@+id/textureView"
+        android:layout_width="240dp"
+        android:layout_height="115dp"
+        app:layout_constraintBottom_toBottomOf="@+id/map"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.7"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout"
+        app:layout_constraintVertical_bias="0.04" />-->
 
 
 </android.support.constraint.ConstraintLayout>

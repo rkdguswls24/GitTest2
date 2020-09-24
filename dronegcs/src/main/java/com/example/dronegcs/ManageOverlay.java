@@ -46,6 +46,30 @@ public class ManageOverlay {
         marker.setMap(mymap);
     }
 
+    public void drawCustomPath(){
+        if(ppointlist.size()>1){
+
+            pathline.setCoords(ppointlist);
+            pathline.setColor(Color.GREEN);
+            pathline.setMap(mymap);
+            for(int i=0;i<ppointlist.size();i++){
+                markerlist.get(i).setTag(String.format(""+(i+1)));
+
+                InfoWindow infoWindow = new InfoWindow();
+                infoWindow.setAdapter((new InfoWindow.DefaultTextAdapter(mainactivity) {
+                    @NonNull
+                    @Override
+                    public CharSequence getText(@NonNull InfoWindow infoWindow) {
+                        return (CharSequence)infoWindow.getMarker().getTag();
+                    }
+                }));
+                infoWindow.open(markerlist.get(i));
+                infowindowlist.add(infoWindow);
+            }
+        }
+
+
+    }
 
     public void drawPolygon(){
 
@@ -99,7 +123,9 @@ public class ManageOverlay {
         pathline.setMap(mymap);
 
     }
-
+    public ArrayList getPlist(){
+        return ppointlist;
+    }
     public void reset(){
         for(Marker marker : markerlist){
             marker.setMap(null);
@@ -111,7 +137,7 @@ public class ManageOverlay {
         polygon.setMap(null);
         ppointlist.clear();
         spraypointlist.clear();
-
+        markerlist.clear();
 
     }
 }

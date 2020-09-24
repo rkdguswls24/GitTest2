@@ -686,7 +686,7 @@ public class MainActivity extends AppCompatActivity implements DroneListener, To
             }
         });
     }
-
+    
     private void stopVideoStream() {
         SoloCameraApi.getApi(drone).stopVideoStream(videoTag, new AbstractCommandListener() {
             @Override
