@@ -335,7 +335,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View view){
                 if(btnStartmission.getText().equals("임무시작")){
-                    startMission();
+                    changetoAutomode();
                     btnStartmission.setText("임무중지");
                 }
                 else if(btnStartmission.getText().equals("임무중지")){
@@ -385,7 +385,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
     public void changetoAutomode(){
-
+        missioncount =0;
         VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_AUTO,new SimpleCommandListener(){
             @Override
             public void onSuccess() {
@@ -754,12 +754,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 alertUser("mission upload succ");
                 break;
             case AttributeEvent.MISSION_ITEM_REACHED:
-                //getPlat();
+                getPlat();
                 missioncount++;
                 if(missioncount==manageOverlays.getPlist().size())
                 {
-                    startMission();
-                    missioncount=0;
+                    changetoAutomode();
                 }
                 //getPlat();
             case AttributeEvent.MISSION_UPDATED:
