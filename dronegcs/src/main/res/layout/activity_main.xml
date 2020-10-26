@@ -436,6 +436,32 @@
 
     </LinearLayout>
 
+    <Button
+        android:id="@+id/turnbt"
+        android:layout_width="60dp"
+        android:layout_height="41dp"
+        android:text="turnbt"
+        android:textSize="4pt"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/mission"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.086" />
+
+    <Button
+        android:id="@+id/conbt"
+        android:layout_width="60dp"
+        android:layout_height="41dp"
+        android:text="conbt"
+        android:textSize="4pt"
+        app:layout_constraintBottom_toBottomOf="@+id/turnbt"
+        app:layout_constraintEnd_toStartOf="@+id/turnbt"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
     <!--<TextureView
         android:id="@+id/textureView"
         android:layout_width="240dp"

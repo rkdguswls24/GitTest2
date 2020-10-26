@@ -1,8 +1,14 @@
 package com.example.dronegcs;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
 import android.graphics.PointF;
@@ -10,7 +16,9 @@ import android.graphics.SurfaceTexture;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.MediaCodec;
+import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -95,9 +103,19 @@ import org.droidplanner.services.android.impl.core.polygon.Polygon;
 import org.droidplanner.services.android.impl.core.survey.grid.CircumscribedGrid;
 import org.droidplanner.services.android.impl.core.survey.grid.Trimmer;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener{
     private boolean dronestate = false;
@@ -149,13 +167,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int capacity = 0;
     private double sprayAngle;
     private int missioncount=0;
-    // video manage
-    Handler mainHandler;
-    private TextureView videoView;
-    private MediaCodecManager mediaCodecManager;
-    private String videotag = "testvideotag";
 
+    //tcp
+    private Socket client;
+    private DataOutputStream dataOutput;
+    private DataInputStream dataInput;
+    private static String SERVER_IP = "61.33.158.135";
+    private static String CONNECT_MSG = "connect";
+    private static String STOP_MSG = "stop";
 
+    private static int BUF_SIZE = 1000;
+    Button contcp;
 
 
     @Nullable
@@ -205,6 +227,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             setlist= (LinearLayout)findViewById(R.id.takeoffsetlist);
             setlist.setVisibility(View.INVISIBLE);
         }
+        //tcp
+        contcp = (Button)findViewById(R.id.conbt);
+
+
+        //dronebutton
         takeoffsetbtn = (Button)findViewById(R.id.takeoffset);
         takeoffsetbtn.setText("고도"+dronealtitude);
         LinearLayout list1 = (LinearLayout)findViewById(R.id.maplocklayer);
@@ -232,54 +259,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         recyclerView.setAdapter(adapter);
 
         // video layout #####################################
-       /* videoView = (TextureView) findViewById(R.id.textureView);
-        videoView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @Override
-            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-                alertUser("Video display is available.");
 
-            }
-
-            @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
-            }
-
-            @Override
-            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-                return true;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-
-            }
-        });
-        startVideoStream(new Surface(videoView.getSurfaceTexture()));
-        */
         mapFragment.getMapAsync(this);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
     }
 
-    /*private void startVideoStream(Surface videoSurface) {
-        SoloCameraApi.getApi(drone).startVideoStream(videoSurface, videotag, true, new AbstractCommandListener() {
-            @Override
-            public void onSuccess() {
-                alertUser("Successfully started the video stream. ");
 
-            }
-
-            @Override
-            public void onError(int executionError) {
-                alertUser("Error while starting the video stream: " + executionError);
-            }
-
-            @Override
-            public void onTimeout() {
-                alertUser("Timed out while attempting to start the video stream.");
-            }
-        });
-    }*/
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,  @NonNull int[] grantResults) {
@@ -344,6 +329,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+        //tcp
+        contcp.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View view){
+                Connect connect = new Connect();
+                connect.execute(CONNECT_MSG);
+            }
+        });
     }
 
     //mission
@@ -360,7 +353,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMission.addMissionItem(waypoint);
         }
         MissionApi.getApi(this.drone).setMission(mMission,true);
-
+        MissionApi.getApi(this.drone).setMissionSpeed(0.5f,null);
 
     }
     //startmission
@@ -384,8 +377,46 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
     }
+    public void changetoLoitermode(){
+        //missioncount =0;
+        VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER,new SimpleCommandListener(){
+            @Override
+            public void onSuccess() {
+                alertUser("LOITER 모드로 변경 중...");
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("LOITER 모드 변경 실패 : " + executionError);
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("LOITER 모드 변경 실패.");
+            }
+        });
+    }
+    public void changetoGuideMode(){
+
+        VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_GUIDED,new SimpleCommandListener(){
+            @Override
+            public void onSuccess() {
+                alertUser("Guide 모드로 변경 중...");
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("Guide 모드 변경 실패 : " + executionError);
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("Guide 모드 변경 실패.");
+            }
+        });
+    }
     public void changetoAutomode(){
-        missioncount =0;
+
         VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_AUTO,new SimpleCommandListener(){
             @Override
             public void onSuccess() {
@@ -426,14 +457,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //gettoplatform
     public void getPlat(){
         MissionApi.getApi(this.drone).pauseMission(null);
+        changetoGuideMode();
         ControlApi.getApi(this.drone).climbTo(0);
         alertUser("approaching to the platform...");
         try{
-            Thread.sleep(5000);
+            SystemClock.sleep(5000);
             //wait for onboard signal
             ControlApi.getApi(this.drone).climbTo(dronealtitude);
             alertUser("leaving...");
-        }catch(InterruptedException e){
+        }catch(Exception e){
             alertUser("sleep denied");
             ControlApi.getApi(this.drone).climbTo(dronealtitude);
         }
@@ -452,6 +484,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             polygonPointList.add(latLong);
             manageOverlays.setPPosition(latLong);
             manageOverlays.drawCustomPath();
+
         }
    }
     public void missionClear(){
@@ -754,11 +787,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 alertUser("mission upload succ");
                 break;
             case AttributeEvent.MISSION_ITEM_REACHED:
-                getPlat();
+                //getPlat();
                 missioncount++;
+                alertUser(""+missioncount);
                 if(missioncount==manageOverlays.getPlist().size())
                 {
-                    changetoAutomode();
+                    missioncount=0;
+
+                    try {
+                        Thread.sleep(1000);
+                        abortmission();
+                        alertUser("reached last destin");
+                        Thread.sleep(1000);
+                        changetoAutomode();
+                        alertUser("restart miss"+missioncount);
+                    }catch(Exception e){
+                        alertUser("restart failed\n"+e);
+                    }
+
                 }
                 //getPlat();
             case AttributeEvent.MISSION_UPDATED:
@@ -983,7 +1029,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 missiondrawlist.setVisibility(View.INVISIBLE);
                 break;
             case R.id.custom:
-                mission = true;
+                mission = !mission;
                 missiondrawlist.setVisibility(View.INVISIBLE);
                 break;
 
@@ -1202,6 +1248,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return target.distanceTo(recentLatLng) <= 1;
         }
     }
+    private class Connect extends AsyncTask< String , String,Void > {
+        private String output_message;
+        private String input_message;
+
+        @Override
+        protected Void doInBackground(String... strings) {
+            try {
+                client = new Socket(SERVER_IP, 9999);
+                dataOutput = new DataOutputStream(client.getOutputStream());
+                dataInput = new DataInputStream(client.getInputStream());
+                output_message = strings[0];
+                dataOutput.writeUTF(output_message);
+
+            } catch (UnknownHostException e) {
+                String str = e.getMessage().toString();
+                Log.w("discnt", str + " 1");
+            } catch (IOException e) {
+                String str = e.getMessage().toString();
+                Log.w("discnt", str + " 2");
+            }
+
+            while (true){
+                try {
+                    byte[] buf = new byte[BUF_SIZE];
+                    int read_Byte  = dataInput.read(buf);
+                    input_message = new String(buf, 0, read_Byte);
+                    if (!input_message.equals(STOP_MSG)){
+                        publishProgress(input_message);
+                    }
+                    else{
+
+                        break;
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(String... params){
+            alertUser(params[0]);
+        }
+
+
+
+    }
+
 }
 
 
