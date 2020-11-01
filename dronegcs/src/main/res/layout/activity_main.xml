@@ -437,11 +437,12 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/turnbt"
+        android:id="@+id/bt"
         android:layout_width="60dp"
         android:layout_height="41dp"
-        android:text="turnbt"
+        android:text="bt"
         android:textSize="4pt"
+        android:onClick="btn_event"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/mission"
         app:layout_constraintHorizontal_bias="1.0"
@@ -453,14 +454,42 @@
         android:id="@+id/conbt"
         android:layout_width="60dp"
         android:layout_height="41dp"
-        android:text="conbt"
+        android:text="NET"
         android:textSize="4pt"
-        app:layout_constraintBottom_toBottomOf="@+id/turnbt"
-        app:layout_constraintEnd_toStartOf="@+id/turnbt"
+        app:layout_constraintBottom_toBottomOf="@+id/bt"
+        app:layout_constraintEnd_toStartOf="@+id/bt"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0" />
+
+    <LinearLayout
+        android:id="@+id/btlayout"
+        android:layout_width="60dp"
+        android:layout_height="85dp"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical"
+
+        app:layout_constraintEnd_toStartOf="@+id/mission"
+        app:layout_constraintStart_toStartOf="@+id/bt"
+        app:layout_constraintTop_toBottomOf="@+id/bt">
+
+        <Button
+            android:id="@+id/bton"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:text="turnbt"
+            android:onClick="btn_event"
+            android:textSize="4pt"  />
+
+        <Button
+            android:id="@+id/sendbt"
+            android:layout_width="60dp"
+            android:layout_height="41dp"
+            android:text="sendbt"
+            android:onClick="btn_event"
+            android:textSize="4pt"  />
+    </LinearLayout>
 
     <!--<TextureView
         android:id="@+id/textureView"

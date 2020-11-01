@@ -1,6 +1,7 @@
 package com.example.dronegcs;
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -10,7 +11,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-
+import app.akexorcist.bluetotohspp.library.BluetoothSPP;
+import app.akexorcist.bluetotohspp.library.BluetoothState;
+import app.akexorcist.bluetotohspp.library.DeviceList;
 import android.graphics.PointF;
 import android.graphics.SurfaceTexture;
 import android.location.LocationListener;
@@ -117,6 +120,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import app.akexorcist.bluetotohspp.library.BluetoothSPP;
+
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener{
     private boolean dronestate = false;
     protected Drone drone;
@@ -155,6 +160,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private SimpleTextAdapter adapter;
 
     //polygon
+    public int onMission= 0;
     private boolean mission = false;
     public ArrayList<LatLong> polygonPointList = new ArrayList<LatLong>();
     public ArrayList<LatLong> sprayPointList = new ArrayList<>();
@@ -172,13 +178,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Socket client;
     private DataOutputStream dataOutput;
     private DataInputStream dataInput;
-    private static String SERVER_IP = "61.33.158.135";
+    private static String SERVER_IP = "192.168.43.56";
     private static String CONNECT_MSG = "connect";
     private static String STOP_MSG = "stop";
 
     private static int BUF_SIZE = 1000;
     Button contcp;
+    String[] s;
+    //bluetooth
 
+    Button turnbt;
+    private BluetoothSPP bt;
 
     @Nullable
     private LocationManager locationManager;
@@ -238,7 +248,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LinearLayout list2 = (LinearLayout)findViewById(R.id.mapoptionlayer);
         LinearLayout list3 = (LinearLayout)findViewById(R.id.mapcadstrallayer);
         LinearLayout list4 = (LinearLayout)findViewById(R.id.missiondrawer);
-
+        LinearLayout btlayout= (LinearLayout)findViewById(R.id.btlayout);
+        btlayout.setVisibility(View.INVISIBLE);
         btnset =(LinearLayout)findViewById(R.id.linearLayout3);
         btnset.setVisibility(View.INVISIBLE);
         list1.setVisibility(View.INVISIBLE);
@@ -252,19 +263,99 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLayoutManager.setReverseLayout(true);
         mLayoutManager.setStackFromEnd(true);
 
+
         recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(mLayoutManager);
 
         adapter = new SimpleTextAdapter(alertlist);
         recyclerView.setAdapter(adapter);
 
-        // video layout #####################################
+        // bluetooth
+        bt = new BluetoothSPP(this); //Initializing
+
+        if (!bt.isBluetoothAvailable()) { //블루투스 사용 불가
+            Toast.makeText(getApplicationContext()
+                    , "Bluetooth is not available"
+                    , Toast.LENGTH_SHORT).show();
+            finish();
+        }
+
+        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() { //데이터 수신
+            public void onDataReceived(byte[] data, String message) {
+
+
+
+                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() { //연결됐을 때
+            public void onDeviceConnected(String name, String address) {
+                Toast.makeText(getApplicationContext()
+                        , "Connected to " + name + "\n" + address
+                        , Toast.LENGTH_SHORT).show();
+            }
+
+            public void onDeviceDisconnected() { //연결해제
+                Toast.makeText(getApplicationContext()
+                        , "Connection lost", Toast.LENGTH_SHORT).show();
+            }
+
+
+
+            public void onDeviceConnectionFailed() { //연결실패
+                Toast.makeText(getApplicationContext()
+                        , "Unable to connect", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        Button btnConnect = findViewById(R.id.bton); //연결시도
+        btnConnect.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (bt.getServiceState() == BluetoothState.STATE_CONNECTED) {
+                    bt.disconnect();
+                } else {
+                    Intent intent = new Intent(getApplicationContext(), DeviceList.class);
+                    startActivityForResult(intent, BluetoothState.REQUEST_CONNECT_DEVICE);
+                }
+            }
+        });
 
         mapFragment.getMapAsync(this);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
     }
 
+    public void onDestroy() {
+        super.onDestroy();
+        bt.stopService(); //블루투스 중지
+    }
 
+    public void setup() {
+        Button btnSend = findViewById(R.id.sendbt); //데이터 전송
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                bt.send("0/1/0/110131/0/1/0", true);
+            }
+        });
+    }
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == BluetoothState.REQUEST_CONNECT_DEVICE) {
+            if (resultCode == Activity.RESULT_OK)
+                bt.connect(data);
+        } else if (requestCode == BluetoothState.REQUEST_ENABLE_BT) {
+            if (resultCode == Activity.RESULT_OK) {
+                bt.setupService();
+                bt.startService(BluetoothState.DEVICE_ANDROID);
+                setup();
+            } else {
+                Toast.makeText(getApplicationContext()
+                        , "Bluetooth was not enabled."
+                        , Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+    }
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,  @NonNull int[] grantResults) {
@@ -325,6 +416,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
                 else if(btnStartmission.getText().equals("임무중지")){
                     abortmission();
+                    onMission=0;
                     btnStartmission.setText("임무시작");
                 }
             }
@@ -358,6 +450,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     //startmission
     public void startMission(){
+
 
         MissionApi.getApi(this.drone).startMission(true, true, new AbstractCommandListener() {
             @Override
@@ -416,7 +509,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
     public void changetoAutomode(){
-
+        onMission=1;
         VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_AUTO,new SimpleCommandListener(){
             @Override
             public void onSuccess() {
@@ -436,6 +529,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     //stop mission
     public void abortmission(){
+
         MissionApi.getApi(this.drone).pauseMission(null);
         VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER,new SimpleCommandListener(){
             @Override
@@ -457,22 +551,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //gettoplatform
     public void getPlat(){
         MissionApi.getApi(this.drone).pauseMission(null);
+
         changetoGuideMode();
-        ControlApi.getApi(this.drone).climbTo(0);
-        alertUser("approaching to the platform...");
-        try{
-            SystemClock.sleep(5000);
-            //wait for onboard signal
-            ControlApi.getApi(this.drone).climbTo(dronealtitude);
-            alertUser("leaving...");
-        }catch(Exception e){
-            alertUser("sleep denied");
-            ControlApi.getApi(this.drone).climbTo(dronealtitude);
-        }
-        finally{
-            MissionApi.getApi(this.drone).startMission(true,true,null);
-            alertUser("return to the mission..");
-        }
+        ControlApi.getApi(this.drone).climbTo(dronealtitude-1);
+        alertUser("nomask searched");
 
     }
 
@@ -615,6 +697,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     public void alertMessage(){
         Drone mydrone = this.drone;
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("arming alert");
         builder.setMessage("모터를 가동합니다");
@@ -768,6 +851,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case AttributeEvent.ALTITUDE_UPDATED:
                 updateAltitude();
+
                 break;
             case AttributeEvent.GPS_POSITION:
                 updatetrack();
@@ -913,6 +997,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onStart();
         this.controlTower.connect((TowerListener) this);
 
+        if (!bt.isBluetoothEnabled()) { //
+            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(intent, BluetoothState.REQUEST_ENABLE_BT);
+        } else {
+            if (!bt.isServiceAvailable()) {
+                bt.setupService();
+                bt.startService(BluetoothState.DEVICE_OTHER); //DEVICE_ANDROID는 안드로이드 기기 끼리
+                setup();
+            }
+        }
     }
     @Override
     public void onStop() {
@@ -988,6 +1082,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 LinearLayout list2 = (LinearLayout)findViewById(R.id.mapcadstrallayer);
                 onlistbtnTap(list2);
                 break;
+            case R.id.bt:
+                LinearLayout btlayout = (LinearLayout)findViewById(R.id.btlayout);
+                onlistbtnTap(btlayout);
             case R.id.maplock:
                 mapfollow = true;
                 mapfollowTap();
@@ -1122,7 +1219,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         TextView altitudeTextView = (TextView) findViewById(R.id.altitude);
         Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
         altitudeTextView.setText(String.format("%3.1f", droneAltitude.getAltitude()) + "m");
-
+        if(onMission==1 && droneAltitude.getAltitude()<=(dronealtitude-1))
+        {
+            float angle = Float.parseFloat(s[1]);
+            ControlApi.getApi(this.drone).turnTo(angle,1.0f,true,null);
+            alertUser("turn head ");
+            onMission=2;
+        }
+        if(onMission==2){
+            ControlApi.getApi(this.drone).climbTo(dronealtitude);
+            alertUser("return to mission");
+            changetoAutomode();
+        }
 
 
     }
@@ -1285,17 +1393,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                catch(StringIndexOutOfBoundsException e){
+                    e.printStackTrace();
+
+                }catch(RuntimeException e){
+                    e.printStackTrace();
+
+                }
+
             }
             return null;
         }
 
         @Override
         protected void onProgressUpdate(String... params){
-            alertUser(params[0]);
+            s = params[0].split(" ");
+            if(onMission==1 && s[0].equals("nomask"))//
+                getPlat();
+
+
+            alertUser(s[0]);
         }
 
-
-
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
     }
 
 }
