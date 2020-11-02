@@ -445,7 +445,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMission.addMissionItem(waypoint);
         }
         MissionApi.getApi(this.drone).setMission(mMission,true);
-        MissionApi.getApi(this.drone).setMissionSpeed(0.5f,null);
+        MissionApi.getApi(this.drone).setMissionSpeed(0.6f,null);
 
     }
     //startmission
@@ -550,11 +550,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     //gettoplatform
     public void getPlat(){
-        MissionApi.getApi(this.drone).pauseMission(null);
+        alertUser("get plat onMission:"+onMission);
+        try{
+            changetoGuideMode();
+            Thread.sleep(1000);
+            ControlApi.getApi(this.drone).climbTo((dronealtitude-1));
+            alertUser("nomask searched");
+        }
+        catch(InterruptedException e){
+            alertUser("error ");
+            changetoAutomode();
+        }
 
-        changetoGuideMode();
-        ControlApi.getApi(this.drone).climbTo(dronealtitude-1);
-        alertUser("nomask searched");
+
+
 
     }
 
@@ -871,13 +880,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 alertUser("mission upload succ");
                 break;
             case AttributeEvent.MISSION_ITEM_REACHED:
-                //getPlat();
+
                 missioncount++;
                 alertUser(""+missioncount);
                 if(missioncount==manageOverlays.getPlist().size())
                 {
                     missioncount=0;
-
+                    //changetoAutomode();
                     try {
                         Thread.sleep(1000);
                         abortmission();
@@ -890,7 +899,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
 
                 }
-                //getPlat();
+
             case AttributeEvent.MISSION_UPDATED:
                 break;
 
@@ -1221,14 +1230,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         altitudeTextView.setText(String.format("%3.1f", droneAltitude.getAltitude()) + "m");
         if(onMission==1 && droneAltitude.getAltitude()<=(dronealtitude-1))
         {
-            float angle = Float.parseFloat(s[1]);
+            float angle=0;
+            if(!s[1].isEmpty())
+                angle = Float.parseFloat(s[1]);
             ControlApi.getApi(this.drone).turnTo(angle,1.0f,true,null);
             alertUser("turn head ");
             onMission=2;
         }
         if(onMission==2){
-            ControlApi.getApi(this.drone).climbTo(dronealtitude);
-            alertUser("return to mission");
+            try{
+                Thread.sleep(3000);
+                ControlApi.getApi(this.drone).climbTo(dronealtitude);
+                alertUser("return to mission");
+                onMission=3;
+            }catch(InterruptedException e){
+                ControlApi.getApi(this.drone).climbTo(dronealtitude);
+                alertUser("error return to mission");
+                onMission=3;
+            }
+
+
+        }
+        if(onMission==3){
             changetoAutomode();
         }
 
