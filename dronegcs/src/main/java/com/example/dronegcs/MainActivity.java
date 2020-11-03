@@ -19,6 +19,7 @@ import android.graphics.SurfaceTexture;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.MediaCodec;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -123,6 +124,7 @@ import java.util.UUID;
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener{
+    MediaPlayer mediaPlayer;
     private boolean dronestate = false;
     protected Drone drone;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
@@ -178,9 +180,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Socket client;
     private DataOutputStream dataOutput;
     private DataInputStream dataInput;
-    private static String SERVER_IP = "192.168.43.56";
+    private static String SERVER_IP = "61.33.158.135";
     private static String CONNECT_MSG = "connect";
     private static String STOP_MSG = "stop";
+    private static String RETURN_MSG = "SOUND";
 
     private static int BUF_SIZE = 1000;
     Button contcp;
@@ -271,89 +274,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         recyclerView.setAdapter(adapter);
 
         // bluetooth
-        bt = new BluetoothSPP(this); //Initializing
-
-        if (!bt.isBluetoothAvailable()) { //블루투스 사용 불가
-            Toast.makeText(getApplicationContext()
-                    , "Bluetooth is not available"
-                    , Toast.LENGTH_SHORT).show();
-            finish();
-        }
-
-        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() { //데이터 수신
-            public void onDataReceived(byte[] data, String message) {
+        mediaPlayer = MediaPlayer.create(MainActivity.this,R.raw.mask_warning);
 
 
-
-                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() { //연결됐을 때
-            public void onDeviceConnected(String name, String address) {
-                Toast.makeText(getApplicationContext()
-                        , "Connected to " + name + "\n" + address
-                        , Toast.LENGTH_SHORT).show();
-            }
-
-            public void onDeviceDisconnected() { //연결해제
-                Toast.makeText(getApplicationContext()
-                        , "Connection lost", Toast.LENGTH_SHORT).show();
-            }
-
-
-
-            public void onDeviceConnectionFailed() { //연결실패
-                Toast.makeText(getApplicationContext()
-                        , "Unable to connect", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        Button btnConnect = findViewById(R.id.bton); //연결시도
-        btnConnect.setOnClickListener(new View.OnClickListener() {
+        //sound button
+        Button btcon = findViewById(R.id.bton); //연결시도
+        btcon.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if (bt.getServiceState() == BluetoothState.STATE_CONNECTED) {
-                    bt.disconnect();
-                } else {
-                    Intent intent = new Intent(getApplicationContext(), DeviceList.class);
-                    startActivityForResult(intent, BluetoothState.REQUEST_CONNECT_DEVICE);
-                }
+
+                mediaPlayer.start();
             }
         });
-
+        Button btnSend = findViewById(R.id.sendbt); //연결시도
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // 정지버튼
+                mediaPlayer.stop();
+                // 초기화
+                mediaPlayer.reset();            }
+        });
         mapFragment.getMapAsync(this);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
     }
+    //sound start
+    public void soundalert(){
+        mediaPlayer.start();
+    }
 
-    public void onDestroy() {
+
+
+
+
+    @Override
+    protected void onDestroy() {
         super.onDestroy();
-        bt.stopService(); //블루투스 중지
-    }
-
-    public void setup() {
-        Button btnSend = findViewById(R.id.sendbt); //데이터 전송
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                bt.send("0/1/0/110131/0/1/0", true);
-            }
-        });
-    }
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == BluetoothState.REQUEST_CONNECT_DEVICE) {
-            if (resultCode == Activity.RESULT_OK)
-                bt.connect(data);
-        } else if (requestCode == BluetoothState.REQUEST_ENABLE_BT) {
-            if (resultCode == Activity.RESULT_OK) {
-                bt.setupService();
-                bt.startService(BluetoothState.DEVICE_ANDROID);
-                setup();
-            } else {
-                Toast.makeText(getApplicationContext()
-                        , "Bluetooth was not enabled."
-                        , Toast.LENGTH_SHORT).show();
-                finish();
-            }
+        // MediaPlayer 해지
+        if(mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
         }
     }
     @Override
@@ -1006,16 +964,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onStart();
         this.controlTower.connect((TowerListener) this);
 
-        if (!bt.isBluetoothEnabled()) { //
-            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(intent, BluetoothState.REQUEST_ENABLE_BT);
-        } else {
-            if (!bt.isServiceAvailable()) {
-                bt.setupService();
-                bt.startService(BluetoothState.DEVICE_OTHER); //DEVICE_ANDROID는 안드로이드 기기 끼리
-                setup();
-            }
-        }
+
     }
     @Override
     public void onStop() {
@@ -1235,6 +1184,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 angle = Float.parseFloat(s[1]);
             ControlApi.getApi(this.drone).turnTo(angle,1.0f,true,null);
             alertUser("turn head ");
+            soundalert();
             onMission=2;
         }
         if(onMission==2){
@@ -1392,6 +1342,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 output_message = strings[0];
                 dataOutput.writeUTF(output_message);
 
+
             } catch (UnknownHostException e) {
                 String str = e.getMessage().toString();
                 Log.w("discnt", str + " 1");
@@ -1434,7 +1385,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if(onMission==1 && s[0].equals("nomask"))//
                 getPlat();
 
-
+//            if(s[0].equals("nomask"))
+//                soundalert();
             alertUser(s[0]);
         }
 
