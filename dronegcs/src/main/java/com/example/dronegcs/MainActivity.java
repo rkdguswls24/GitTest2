@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Socket client;
     private DataOutputStream dataOutput;
     private DataInputStream dataInput;
-    private static String SERVER_IP = "61.33.158.135";
+    private static String SERVER_IP = "192.168.43.56";
     private static String CONNECT_MSG = "connect";
     private static String STOP_MSG = "stop";
     private static String RETURN_MSG = "SOUND";
@@ -274,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         recyclerView.setAdapter(adapter);
 
         // bluetooth
-        mediaPlayer = MediaPlayer.create(MainActivity.this,R.raw.mask_warning);
+        mediaPlayer = MediaPlayer.create(MainActivity.this,R.raw.sound_2);
 
 
         //sound button
@@ -298,7 +298,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     //sound start
     public void soundalert(){
+
         mediaPlayer.start();
+        alertUser("sound alert");
     }
 
 
@@ -512,8 +514,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         try{
             changetoGuideMode();
             Thread.sleep(1000);
-            ControlApi.getApi(this.drone).climbTo((dronealtitude-1));
+            ControlApi.getApi(this.drone).climbTo((dronealtitude-1.2));
             alertUser("nomask searched");
+            onMission=2;
         }
         catch(InterruptedException e){
             alertUser("error ");
@@ -824,6 +827,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updatetrack();
                 delMarker();
                 pathline();
+                if(onMission==2){
+                    try{
+                        soundalert();
+                        Thread.sleep(5000);
+
+                        alertUser("return to mission");
+
+                        changetoAutomode();
+                    }catch(InterruptedException e){
+
+                        alertUser("error sleep");
+                        changetoAutomode();
+                    }
+                }
+                if(onMission==3)
+                {
+                    changetoAutomode();
+                }
                 break;
             case AttributeEvent.BATTERY_UPDATED:
                 updateVolt();
@@ -846,12 +867,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     missioncount=0;
                     //changetoAutomode();
                     try {
-                        Thread.sleep(1000);
-                        abortmission();
+//                        Thread.sleep(1000);
+//                        abortmission();
                         alertUser("reached last destin");
                         Thread.sleep(1000);
-                        changetoAutomode();
+                        VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_GUIDED, new AbstractCommandListener() {
+                            @Override
+                            public void onSuccess() {
+                                alertUser("Guided 성공");
+                                onMission=3;
+                            }
+
+                            @Override
+                            public void onError(int executionError) {
+
+                            }
+
+                            @Override
+                            public void onTimeout() {
+
+                            }
+                        });
+                        alertUser("reached last destin");
+
+
                         alertUser("restart miss"+missioncount);
+                        Thread.sleep(1000);
+
                     }catch(Exception e){
                         alertUser("restart failed\n"+e);
                     }
@@ -893,8 +935,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mymap.moveCamera(CameraUpdate.scrollTo(new LatLng(35.945378,126.682110)));
 
         }
-        //
-        //mymap.setLocationTrackingMode(LocationTrackingMode.Follow);
+
     }
     protected void updateNumberOfSatellites() {
         TextView numberOfSatellitesTextView = (TextView)findViewById(R.id.satenum);
@@ -921,22 +962,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onDroneServiceInterrupted(String errorMsg) {
 
     }
-   /* protected void updateTakeOffDrawer(){
-        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
 
-        if(vehicleState.isArmed())
-        {
-            armstatus = true;
-            takeoffsetbtn.setVisibility(View.VISIBLE);
-
-        }
-        else{
-            armstatus = false;
-            takeoffsetbtn.setVisibility(View.INVISIBLE);
-
-        }
-
-    }*/
     protected void updateArmButton() {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         Button armButton = (Button) findViewById(R.id.arm);
@@ -1177,33 +1203,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         TextView altitudeTextView = (TextView) findViewById(R.id.altitude);
         Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
         altitudeTextView.setText(String.format("%3.1f", droneAltitude.getAltitude()) + "m");
-        if(onMission==1 && droneAltitude.getAltitude()<=(dronealtitude-1))
-        {
-            float angle=0;
-            if(!s[1].isEmpty())
-                angle = Float.parseFloat(s[1]);
-            ControlApi.getApi(this.drone).turnTo(angle,1.0f,true,null);
-            alertUser("turn head ");
-            soundalert();
-            onMission=2;
-        }
-        if(onMission==2){
-            try{
-                Thread.sleep(3000);
-                ControlApi.getApi(this.drone).climbTo(dronealtitude);
-                alertUser("return to mission");
-                onMission=3;
-            }catch(InterruptedException e){
-                ControlApi.getApi(this.drone).climbTo(dronealtitude);
-                alertUser("error return to mission");
-                onMission=3;
-            }
 
 
-        }
-        if(onMission==3){
-            changetoAutomode();
-        }
+
+
 
 
     }
@@ -1382,12 +1385,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onProgressUpdate(String... params){
             s = params[0].split(" ");
-            if(onMission==1 && s[0].equals("nomask"))//
-                getPlat();
+            if(onMission==1 && s[0].equals("nomask")){
+                abortmission();
+                onMission=2;
+                alertUser(s[0]);
+            }
+
 
 //            if(s[0].equals("nomask"))
 //                soundalert();
-            alertUser(s[0]);
+
         }
 
         @Override
