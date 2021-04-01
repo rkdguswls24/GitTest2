@@ -23,7 +23,8 @@ Copyright 2019 via, co., Ltd.
   
   드론을 모바일로 컨트롤하기 위해 제작하였으며 어느 디바이스에서도 구동 가능하도록 제작
  
-##기능
+ 
+## 기능
   특정 마크를 찍어두면 자동으로 드론을 목적지 까지 이동
     <img src="https://user-images.githubusercontent.com/41230459/113244917-e4997280-92f0-11eb-9c04-f8962f121e80.png" width="500" height="300"/>
 
