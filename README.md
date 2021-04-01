@@ -25,4 +25,4 @@ Copyright 2019 via, co., Ltd.
  
 ##기능
   특정 마크를 찍어두면 자동으로 드론을 목적지 까지 이동
-  ![KakaoTalk_20201104_135610523_04](https://user-images.githubusercontent.com/41230459/113244917-e4997280-92f0-11eb-9c04-f8962f121e80.png)
+  ![KakaoTalk_20201104_135610523_04](https://user-images.githubusercontent.com/41230459/113244917-e4997280-92f0-11eb-9c04-f8962f121e80.png){: width="300" height="100"}
